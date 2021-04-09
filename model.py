@@ -220,7 +220,7 @@ class Model:
 
     def calc_sinr(self):
         """
-        Result agents-environment interplay
+        Calculate power, awgn, interference
         Args:
 
         Returns:
