@@ -112,17 +112,6 @@ def fig_7(total_run):
         pickle.dump([global_reward], f)
 
 
-def fig_efficiency(total_run):
-    global_reward = []
-    for i in range(total_run):
-        a = np.load(f'Run_efficiency_{i}.npz')
-        global_reward.append(a['data'])
-
-    global_reward = np.stack(global_reward)
-    with open('fig_efficiency.pickle', 'wb') as f:
-        pickle.dump([global_reward], f)
-
-
 def fig_11(total_run):
     global_reward = []
     for i in range(total_run):
@@ -156,17 +145,6 @@ def fig_13(total_run):
         pickle.dump([global_reward], f)
 
 
-def fig_power(total_run):
-    global_reward = []
-    for i in range(total_run):
-        a = np.load(f'Run_power_{i}.npz')
-        global_reward.append(a['data'])
-
-    global_reward = np.stack(global_reward)
-    with open('fig_power.pickle', 'wb') as f:
-        pickle.dump([global_reward], f)
-
-
 def search_worse_user(user_list):
     """
 
@@ -186,7 +164,7 @@ def search_worse_user(user_list):
 
 
 def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequency="1e09", mail=False, n_users=200,
-                        weight=1, s_render=0):
+                        s_render=0):
     """
     Simulation drone environment using Q-Learning
     """
@@ -202,7 +180,7 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
     else:  # TODO: e-greedy fixed value
         epsilon = ep_greedy
 
-    env = MultiDroneEnv(agents, frequency=frequency_list, n_users=n_users, weight=weight)
+    env = MultiDroneEnv(agents, frequency=frequency_list, n_users=n_users)
 
     actions_name = []
     for action_name in agents[0].actions:
@@ -221,12 +199,6 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
 
     num_iter_per_episode = 1000
     num_max_iter_same_rew = 20
-
-    # Model energy
-    energy_iter_episode = 0
-    power_iter_episode = 0
-    velocity = 10  # TODO: 10 m/s
-    val_rb = 360e03  # TODO: 360kbps
 
     best_scenario = [0, 'best']
     num_max = 0
@@ -273,11 +245,6 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
             # TODO: Update observation spaces
             old_obs = new_obs.copy()
 
-            # TODO: Calculate Energy consumption
-            energy, power = env.model_energy(velocity)
-            energy_iter_episode += energy
-            power_iter_episode += power
-
             # TODO: Stopping Criteria
             # First Condition
             if iteration == num_iter_per_episode - 1:
@@ -320,10 +287,8 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
         reward, new_obs, done, _ = env.step(zero_actions)
         idx_w_user = search_worse_user(env.user_list)
 
-        efficiency = np.true_divide(val_rb * (env.calc_users_connected / len(env.user_list)), energy_iter_episode)
-
         metric.update(len(env.user_list), env.calc_users_connected, env.agents, env.all_freq,
-                      env.user_list[idx_w_user].throughput, power_iter_episode, efficiency)
+                      env.user_list[idx_w_user].throughput)
 
         # TODO: Update observation spaces
         old_obs = new_obs.copy()
@@ -336,7 +301,7 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
 
         energy_iter_episode = 0
         power_iter_episode = 0
-        env.move_user()  # TODO: User movement
+        # env.move_user()  # TODO: User movement
 
     metric.extra_metric(f'{env.dir_sim}', env.agents, n_episodes)
     metric.save_metric(run_i)
@@ -357,7 +322,6 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--drone', help="Number of drones", type=int, default=8)
     parser.add_argument('-u', '--users', help="Number of users", type=int, default=200)
     parser.add_argument('-m', '--mail', help='Send mail when simulation is end', type=int, default=0)
-    parser.add_argument('-w', '--weight', help='Value for reward', type=int, default=1)
     parser.add_argument('-f', '--frequency', help="List with operations frequencies", type=str, default="1e09")
     parser.add_argument('-t', '--thread', help='Number thread', type=int, default=1)
     parser.add_argument('-s', '--show', help='Show render environment', type=int, default=0)
@@ -380,7 +344,7 @@ if __name__ == '__main__':
     now_chapter = os.getcwd()
     copy(main_chapter + f'/mapa.pickle', now_chapter + f'/mapa.pickle')
     Parallel(n_jobs=args.thread)(delayed(function_simulation)(i, args.episodes, args.greedy, args.drone, args.frequency,
-                                                              args.mail, args.users, args.weight, args.show)
+                                                              args.mail, args.users, args.show)
                                  for i in range(args.run))
     fig_6(args.run)
     fig_7(args.run)
@@ -388,8 +352,6 @@ if __name__ == '__main__':
     fig_12(args.run)
     fig_status(args.run)
     fig_13(args.run)
-    fig_power(args.run)
-    fig_efficiency(args.run)
 
     frames_path = 'Run_{i}/Episode_{j}.png'
     vid_name = 'Run_{i}/Run_{i}.mp4'

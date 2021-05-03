@@ -18,7 +18,7 @@ with open('mapa.pickle', 'rb') as f:
 
 class MultiDroneEnv(gym.Env):
 
-    def __init__(self, agents, n_users=300, frequency=None, weight=1):
+    def __init__(self, agents, n_users=300, frequency=None):
 
         if frequency is None:
             frequency = [1e09]
@@ -32,7 +32,6 @@ class MultiDroneEnv(gym.Env):
         self.reward_range = (0, self.get_max_reward)
         self.val_a, self.val_b = self.values_a_b
         self.epsilon = None
-        self.weight = weight
 
     def reset(self):
         """
@@ -384,9 +383,8 @@ class MultiDroneEnv(gym.Env):
         Returns:
             Reward scenario
         """
-        total_user_connected = self.calc_users_connected
-        total_backhaul = np.sum([drone.actual_capacity for drone in self.agents if drone.status_tx]) / 1e09
-        return total_user_connected + self.weight * total_backhaul
+
+        return self.calc_users_connected
 
     @property
     def calc_users_connected(self):
@@ -494,63 +492,3 @@ class MultiDroneEnv(gym.Env):
                     position_user_error = True
 
         return temp_user
-
-    @staticmethod
-    def calc_power(velocity):
-
-        # Data Model
-        value_v = velocity
-        value_x = 20
-        value_rho = 1.225
-        val_r = 0.4
-        val_a = 0.503
-        val_omega = 300
-        val_v0 = 4.03
-        val_d0 = 0.6
-        val_s = 0.05
-        val_delta = 0.012
-        val_letter = 0.1
-
-        # Equation
-
-        constant_1 = val_delta / 8 * value_rho * val_s * val_a * np.power(val_omega, 3) * np.power(val_r, 3)
-        constant_2 = (1 + val_letter) * (np.power(value_x, 3 / 2) / np.sqrt(2 * value_rho * val_a))
-        num_1 = 3 * np.power(5, 2)
-        den_1 = np.power(val_omega, 2) * np.power(val_r, 2)
-        part_1 = 1 + num_1 / den_1
-
-        square_1 = np.power(value_v, 4) / (4 * np.power(val_v0, 4))
-        sum_1 = np.sqrt(1 + square_1)
-        sum_2 = np.power(value_v, 2) / (2 * np.power(val_v0, 2))
-        part_2 = np.sqrt(sum_1 - sum_2)
-
-        part_3 = 1 / 2 * val_d0 * value_rho * val_s * val_a * np.power(value_v, 3)
-
-        return constant_1 * part_1 + constant_2 * part_2 + part_3
-
-    def model_energy(self, velocity):
-
-        power = np.zeros(shape=(len(self.agents), 1))
-        energy = np.zeros(shape=(len(self.agents), 1))
-        distance = np.zeros(shape=(len(self.agents), 1), dtype=int)
-
-        for index, drone in enumerate(self.agents):
-            distance[index] = drone.distance
-            if drone.distance == 0:
-                power[index] = self.calc_power(velocity=0)
-            else:
-                power[index] = self.calc_power(velocity=velocity)
-
-        time_shift = distance / velocity
-        time_iteration = 10
-
-        for index, time in enumerate(time_shift):
-            if time == 0:
-                energy[index] = time_iteration * self.calc_power(velocity=0)
-            elif time == 5:
-                energy[index] = time * (self.calc_power(velocity=0) + self.calc_power(velocity=velocity))
-                power[index] += self.calc_power(velocity=0)
-            elif time == time_iteration:
-                energy[index] = time_iteration * self.calc_power(velocity=velocity)
-
-        return energy.sum(), power.sum()
