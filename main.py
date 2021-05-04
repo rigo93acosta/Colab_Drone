@@ -273,15 +273,6 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
             user.load_best()
         num_max = 0
 
-        # def distance_3d(a, b, c): return np.sqrt(np.power(a, 2) + np.power(b, 2) + np.power(c, 2))
-        #
-        # for idx, drone in enumerate(env.agents):
-        #     distance = distance_3d(drone.pos[0] - save_pos[idx][0],
-        #                            drone.pos[1] - save_pos[idx][1],
-        #                            drone.pos[2] - save_pos[idx][2])
-        #     energy_iter_episode += distance / velocity * env.calc_power(velocity=velocity)
-        #     power_iter_episode += env.calc_power(velocity=velocity)
-
         # TODO: Update metrics
         zero_actions = (np.ones(len(env.agents), dtype='int') * agents[0].actions.stop).tolist()
         reward, new_obs, done, _ = env.step(zero_actions)
@@ -299,8 +290,6 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
         if episode == n_episodes - 1:
             env.render(filename=f'Episode_{episode + 1}.png')  # TODO: Render image environment
 
-        energy_iter_episode = 0
-        power_iter_episode = 0
         # env.move_user()  # TODO: User movement
 
     metric.extra_metric(f'{env.dir_sim}', env.agents, n_episodes)
