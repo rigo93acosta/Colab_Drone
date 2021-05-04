@@ -145,6 +145,17 @@ def fig_13(total_run):
         pickle.dump([global_reward], f)
 
 
+def fig_sinr(total_run):
+    global_reward = []
+    for i in range(total_run):
+        a = np.load(f'Run_sinr_{i}.npz')
+        global_reward.append(a['data'])
+
+    global_reward = np.stack(global_reward)
+    with open('fig_sinr.pickle', 'wb') as f:
+        pickle.dump([global_reward], f)
+
+
 def search_worse_user(user_list):
     """
 
@@ -279,7 +290,7 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
         idx_w_user = search_worse_user(env.user_list)
 
         metric.update(len(env.user_list), env.calc_users_connected, env.agents, env.all_freq,
-                      env.user_list[idx_w_user].throughput)
+                      env.user_list[idx_w_user].throughput, env.mean_sinr)
 
         # TODO: Update observation spaces
         old_obs = new_obs.copy()
@@ -340,6 +351,7 @@ if __name__ == '__main__':
     fig_11(args.run)
     fig_12(args.run)
     fig_status(args.run)
+    fig_sinr(args.run)
     fig_13(args.run)
 
     frames_path = 'Run_{i}/Episode_{j}.png'

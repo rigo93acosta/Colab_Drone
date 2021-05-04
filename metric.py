@@ -15,6 +15,7 @@ class Metric:
         self.save_backhaul_1 = []
         self.save_status = []
         self.save_worse_thr = []
+        self.save_mean_sinr = []
         self.actions_name = actions
 
     @staticmethod
@@ -70,7 +71,7 @@ class Metric:
         return val_temp
 
     def update(self, reward_max, reward, drones, frequencies,
-               worse_thr):
+               worse_thr, mean_sinr):
         """
         Update metrics simulation
         Args:
@@ -88,6 +89,7 @@ class Metric:
         self.save_backhaul_1.append(self.calc_backhaul(drones, False) / len(frequencies))
         self.save_status.append(self._calc_status(drones))
         self.save_worse_thr.append(worse_thr)
+        self.save_mean_sinr.append(mean_sinr)
 
     def save_metric(self, run_i=0):
         """
@@ -102,6 +104,7 @@ class Metric:
         np.savez(f'Run_backhaul_global{run_i}', data=self.save_backhaul_1)
         np.savez(f'Run_status_{run_i}', data=self.save_status)
         np.savez(f'Run_worse_{run_i}', data=self.save_worse_thr)
+        np.savez(f'Run_sinr_{run_i}', data=self.save_mean_sinr)
 
     def extra_metric(self, chapter, drones, n_episodes):
 

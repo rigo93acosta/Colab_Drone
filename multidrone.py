@@ -32,6 +32,7 @@ class MultiDroneEnv(gym.Env):
         self.reward_range = (0, self.get_max_reward)
         self.val_a, self.val_b = self.values_a_b
         self.epsilon = None
+        self.mean_sinr = 0
 
     def reset(self):
         """
@@ -79,6 +80,7 @@ class MultiDroneEnv(gym.Env):
             dist_dron_r[:, idx_dron] = np.sqrt(np.sum(np.square(user_array[:, :2] - dron_array[idx_dron, :2]), axis=1))
 
         sinr_db = self._interplay(dron_array, dist_dron_r, frequency_drone, status_drone)
+        self.mean_sinr = np.mean(sinr_db)
         self._user_to_drone(sinr_db)
         self.calc_backhaul()
         info_env = None
