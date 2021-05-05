@@ -186,9 +186,9 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
     for index, agent in enumerate(agents):
         agent.name = f'Drone_{index}'
 
-    if ep_greedy == 0:  # TODO: e-greedy decay
+    if ep_greedy == 0:  # e-greedy decay
         epsilon = 1
-    else:  # TODO: e-greedy fixed value
+    else:  # e-greedy fixed value
         epsilon = ep_greedy
 
     env = MultiDroneEnv(agents, frequency=frequency_list, n_users=n_users)
@@ -221,9 +221,9 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
             if not ep_greedy:
                 env.epsilon = np.exp(-iteration / 5)
 
-            # TODO: Choice action
-            actions_array = []  # TODO: Action selected
-            actions_val_array = []  # TODO: Action validated
+            # Choice action
+            actions_array = []  # Action selected
+            actions_val_array = []  # Action validated
             for id_d, drone in enumerate(env.agents):
                 action_ok, action_selected = drone.choice_action(old_obs[id_d], env.epsilon)
                 actions_array.append(action_selected)
@@ -231,16 +231,16 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
 
             reward, new_obs, done, _ = env.step(actions_val_array)
 
-            # TODO: Learn agents
+            # Learn agents
             for id_d, drone in enumerate(env.agents):
                 drone.learn(old_obs[id_d], new_obs[id_d], [l_rate, discount, reward, actions_array[id_d]])
 
-            # TODO: Select the best scenario
+            # Select the best scenario
             actual_scenario = [reward, 'actual']
             both_scenario = [actual_scenario, best_scenario]
             s_f = sorted(both_scenario, key=itemgetter(0), reverse=True)
 
-            # TODO: Update Criteria
+            # Update Criteria
             if s_f[0][1] == 'actual':
                 best_scenario.clear()
                 best_scenario = actual_scenario.copy()
@@ -253,10 +253,10 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
             else:
                 num_max += 1
 
-            # TODO: Update observation spaces
+            # Update observation spaces
             old_obs = new_obs.copy()
 
-            # TODO: Stopping Criteria
+            # Stopping Criteria
             # First Condition
             if iteration == num_iter_per_episode - 1:
                 num_max = 0
@@ -273,7 +273,7 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
                 break
 
         iter_x_episode.append(iteration)
-        # TODO: Load best scenario
+        # Load best scenario
         save_pos = []
         for drone in env.agents:
             save_pos.append(drone.pos.copy())
@@ -284,24 +284,28 @@ def function_simulation(run_i=0, n_episodes=5, ep_greedy=0, n_agents=16, frequen
             user.load_best()
         num_max = 0
 
-        # TODO: Update metrics
+        # Update metrics
         zero_actions = (np.ones(len(env.agents), dtype='int') * agents[0].actions.stop).tolist()
         reward, new_obs, done, _ = env.step(zero_actions)
         idx_w_user = search_worse_user(env.user_list)
+        all_sinr = []
+
+        for user in env.user_list:
+            all_sinr.append(user.value_sinr)
 
         metric.update(len(env.user_list), env.calc_users_connected, env.agents, env.all_freq,
-                      env.user_list[idx_w_user].throughput, env.mean_sinr)
+                      env.user_list[idx_w_user].throughput, np.mean(all_sinr))
 
-        # TODO: Update observation spaces
+        # Update observation spaces
         old_obs = new_obs.copy()
         if s_render:
             if episode % 5 == 0:
-                env.render(filename=f'Episode_{episode + 1}.png')  # TODO: Render image environment
+                env.render(filename=f'Episode_{episode + 1}.png')  # Render image environment
 
         if episode == n_episodes - 1:
-            env.render(filename=f'Episode_{episode + 1}.png')  # TODO: Render image environment
+            env.render(filename=f'Episode_{episode + 1}.png')  # Render image environment
 
-        # env.move_user()  # TODO: User movement
+        # env.move_user()  # User movement
 
     metric.extra_metric(f'{env.dir_sim}', env.agents, n_episodes)
     metric.save_metric(run_i)

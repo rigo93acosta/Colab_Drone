@@ -23,7 +23,7 @@ class MultiDroneEnv(gym.Env):
         if frequency is None:
             frequency = [1e09]
 
-        self.terreno = info['terreno']  # TODO: Need to allocate users in the map
+        self.terreno = info['terreno']  # Need to allocate users in the map
         self.agents = agents
         self.total_user = n_users
         self.output_chapter = f'run'
@@ -32,7 +32,6 @@ class MultiDroneEnv(gym.Env):
         self.reward_range = (0, self.get_max_reward)
         self.val_a, self.val_b = self.values_a_b
         self.epsilon = None
-        self.mean_sinr = 0
 
     def reset(self):
         """
@@ -80,7 +79,6 @@ class MultiDroneEnv(gym.Env):
             dist_dron_r[:, idx_dron] = np.sqrt(np.sum(np.square(user_array[:, :2] - dron_array[idx_dron, :2]), axis=1))
 
         sinr_db = self._interplay(dron_array, dist_dron_r, frequency_drone, status_drone)
-        self.mean_sinr = np.mean(sinr_db)
         self._user_to_drone(sinr_db)
         self.calc_backhaul()
         info_env = None
@@ -220,7 +218,10 @@ class MultiDroneEnv(gym.Env):
         Returns:
             List states drones
         """
-        def search_state(x, list_pos): return list_pos.index(x)
+
+        def search_state(x, list_pos):
+            return list_pos.index(x)
+
         temp_obs = []
 
         for dron in self.agents:
@@ -229,9 +230,9 @@ class MultiDroneEnv(gym.Env):
             val2 = search_state(temp_position[1], list(dron.space_map[1]))
             val3 = search_state(temp_position[2], list(dron.space_map[2]))
             if dron.status_tx:
-                val4 = 1  # TODO: Enable Tx
+                val4 = 1  # Enable Tx
             else:
-                val4 = 0  # TODO: Disable Tx
+                val4 = 0  # Disable Tx
             val5 = self.all_freq.index(dron.freq_tx)
             temp_obs.append([val1, val2, val3, val4, val5])
 
@@ -245,9 +246,10 @@ class MultiDroneEnv(gym.Env):
         Returns:
             Constants value A and B
         """
-        c_a = [9.34e-01, 2.30e-01, -2.25e-03, 1.86e-05, 1.97e-02, 2.44e-03, 6.58e-06,
+
+        c_a = [9.34e-01, 2.30e-01, -2.25e-03, 1.86e-05, 1.97e-02, 2.44e-03, 6.58e-06,  # Table I paper 2
                0, -1.24e-04, -3.34e-06, 0, 0, 2.73e-07, 0, 0, 0]
-        c_b = [1.17e-00, -7.56e-02, 1.98e-03, -1.78e-05, -5.79e-03, 1.81e-04, -1.65e-06,
+        c_b = [1.17e-00, -7.56e-02, 1.98e-03, -1.78e-05, -5.79e-03, 1.81e-04, -1.65e-06,    # Table II paper 2
                0, 1.73e-05, -2.02e-07, 0, 0, -2.00e-08, 0, 0, 0]
 
         c_a = np.asarray(c_a).reshape(4, 4)
@@ -256,6 +258,7 @@ class MultiDroneEnv(gym.Env):
         z_a = []
         z_b = []
 
+        # Equation 6 in paper 2.
         for j in range(4):
             for i in range(4 - j):
                 z_a.append(c_a[i, j] * np.power(info['alpha'] * info['beta'], i) * np.power(info['gamma'], j))
@@ -280,12 +283,13 @@ class MultiDroneEnv(gym.Env):
             Loss Path between users-drones
         """
 
-        # TODO: Calculate for a frequency 1GHz
+        # Equation 8 and 10 in the paper 2.
+        # Calculate for a frequency 1GHz
         val_division = np.true_divide(dh, dr)
         term_a = 1 + data_a * np.exp(-data_b * (np.rad2deg(np.arctan(val_division)) - data_a))
         term_c = 1
         term_d = 20
-        term_b = 10*np.log10(np.square(dh) + np.square(dr)) + 20*np.log10(f_tx) + 20*np.log10(4*np.pi/3e08)
+        term_b = 10 * np.log10(np.square(dh) + np.square(dr)) + 20 * np.log10(f_tx) + 20 * np.log10(4 * np.pi / 3e08)
 
         return (term_c - term_d) / term_a + term_b + term_d
 
@@ -299,15 +303,15 @@ class MultiDroneEnv(gym.Env):
             Loss without noise
         """
 
-        # TODO: Equation 7 in the paper.
-        eirp = -3  # TODO: -3 dBW
-        dron_rc = drones[:, 2] * np.tan(np.deg2rad(60 / 2))  # TODO: Radio coverage all drones
+        # Equation 7 in the paper 1.
+        eirp = -3  # -3 dBW
+        dron_rc = drones[:, 2] * np.tan(np.deg2rad(60 / 2))  # Radio coverage all drones
         dist_drones = distance_2d[:, :len(self.agents)]
         drones_altura = drones[:len(self.agents), 2]
         result_loss = eirp - self._loss_path_average(dist_drones, drones_altura, self.val_a, self.val_b, f_tx)
         table_ok_cob = distance_2d[:, :len(self.agents)] <= dron_rc[:len(self.agents)]
         user_false, dron_false = np.where(table_ok_cob == False)
-        result_loss[user_false, dron_false] = -530  # TODO: Equal to -500dBm
+        result_loss[user_false, dron_false] = -530  # Equal to -500dBm
 
         for index, status in enumerate(status_tx):
             if not status:
@@ -329,7 +333,7 @@ class MultiDroneEnv(gym.Env):
         table_rsrp_db = self._calc_rsrp(drones, dr, f_tx, status_tx)
         table_rsrp_linear = np.power(10, table_rsrp_db / 10)
 
-        # Equal to sum at denominator for equation 8
+        # Equal to sum at denominator for equation 8 in the paper 1.
         table_rsrp_inv_linear = np.zeros((self.total_user, len(self.agents)))
         for j in range(table_rsrp_inv_linear.shape[1]):
             f_tx_e = f_tx[j]
@@ -350,16 +354,20 @@ class MultiDroneEnv(gym.Env):
         Args:
             table_sinr: SINR array
         """
-        # TODO: Function lambda to calculate throughput
-        def calc_thr(x): return 180e03 * np.log2(1 + np.power(10, x / 10))
+
+        # Function to calculate throughput
+        def calc_thr(x):
+            return 180e03 * np.log2(1 + np.power(10, x / 10))
 
         for idx_user, user in enumerate(self.user_list):
             if user.connection:
                 idx_drone = user.index_dron
                 if table_sinr[idx_user, idx_drone] >= -3:
                     user.throughput = 1.3 * calc_thr(table_sinr[idx_user, idx_drone])
+                    user.value_sinr = table_sinr[idx_user, idx_drone]
                 else:
                     user.throughput = 0
+                    user.value_sinr = 0
                     user.connection = False
                     self.agents[idx_drone].users.remove(idx_user)
                     user.index_dron = None
@@ -375,6 +383,7 @@ class MultiDroneEnv(gym.Env):
                                 self.agents[idx_drone].users.append(idx_user)
                                 self.user_list[idx_user].connection = True
                                 self.user_list[idx_user].throughput = 1.3 * calc_thr(table_sinr[idx_user, idx_drone])
+                                self.user_list[idx_user].value_sinr = table_sinr[idx_user, idx_drone]
                                 self.user_list[idx_user].index_dron = idx_drone
                                 break
 
@@ -429,38 +438,6 @@ class MultiDroneEnv(gym.Env):
 
             self.agents[select_dron].actual_capacity = val_back
 
-    def move_user(self):
-        """
-        Function to move users
-        """
-
-        # TODO: Ref -> Efficient 3D Aerial Base Station Placement Considering Users Mobility by RL
-        mov_angle = {'min': 0, 'max': 2 * np.pi}
-        mov_speed = {'min': 0, 'max': 1.3}  # Value is 1.3 m/s
-        mov_time = 2  # Values is a seconds
-        def delta_y(angle, distance): return int(np.round(distance * np.sin(angle)))
-        def delta_x(angle, distance): return int(np.round(distance * np.cos(angle)))
-        def value_random(v_min, v_max): return np.random.uniform(v_min, v_max)
-
-        for user in self.user_list:
-            name = user.name
-            name = name.split('_')
-            name = name[0]
-
-            if name == 'User':
-                change_pos = False
-                while not change_pos:
-                    sum_y = delta_y(value_random(mov_angle['min'], mov_angle['max']), 1)
-                    sum_x = delta_x(value_random(mov_angle['min'], mov_angle['max']), 1)
-
-                    past_x, past_y = user.position[0], user.position[1]
-                    user.action_step([sum_x, sum_y])
-                    now_x, now_y = user.position[0], user.position[1]
-                    if self.terreno[now_x, now_y] == 0:
-                        self.terreno[past_x, past_y] = 0
-                        self.terreno[now_x, now_y] = 200
-                        change_pos = True
-
     @staticmethod
     def _freq_string(frequency):
 
@@ -471,7 +448,7 @@ class MultiDroneEnv(gym.Env):
         out_values[1] = values_dict[out_values[1]]
         return out_values[0] + out_values[1]
 
-    # TODO: Users deployment
+    # Users deployment
     @property
     def _create_users(self):
         """
@@ -480,8 +457,8 @@ class MultiDroneEnv(gym.Env):
             Users position in map
         """
         temp_user = []
-        # TODO: Random users position
-        for _ in range(self.total_user):  # TODO: Number of the users
+        # Random users position
+        for _ in range(self.total_user):  # Number of the users
             position_user_error = False
             while not position_user_error:
                 user_x = int(np.random.randint(0, info['L'], 1))

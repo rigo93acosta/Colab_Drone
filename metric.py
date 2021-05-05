@@ -55,9 +55,9 @@ class Metric:
         for drone in drones:
             if drone.status_tx:
                 total_backhaul.append(drone.actual_capacity)
-        if flag_backhaul:   # TODO: Backhaul per drone
+        if flag_backhaul:   # Backhaul per drone
             return np.mean(total_backhaul) / 1e06
-        else:   # TODO: Backhaul global
+        else:   # Backhaul global
             return np.sum(total_backhaul) / 1e06
 
     @staticmethod

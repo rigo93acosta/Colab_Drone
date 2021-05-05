@@ -232,6 +232,7 @@ class User:
         self.name = name
         self.req_th = np.power(10, init_req_th / 10)
         self.th_allocate = 0
+        self.value_sinr = 0
         self.connection = False
         self.index_dron = None
         self.save_status = False  # TODO: Save status connection
